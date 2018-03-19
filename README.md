@@ -35,7 +35,7 @@ UIStore用于管理应用界面渲染所涉及的状态、响应用户界面事�
 
 ```typescript
 // /stores/dataStores.ts
-import { BaseStore, apiTypeDef, ApiType, api } from '@sagax';
+import { BaseStore, apiTypeDef, ApiType, api } from 'sagax';
 import { observable } from 'mobx';
 
 export class UserStore extends BaseStore {
@@ -63,7 +63,7 @@ export class OrderStore extends BaseStore {
 
 ```typescript
 // /stores/uiStores.ts
-import { BaseStore, bind, runSaga, apiTypeDef, types, ApiType, api } from '@sagax';
+import { BaseStore, bind, runSaga, apiTypeDef, types, ApiType, api } from 'sagax';
 import { put, call, take, takeLatest, fork } from 'redux-saga/effects';
 import { observable, computed } from 'mobx';
 

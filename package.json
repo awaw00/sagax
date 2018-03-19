@@ -1,12 +1,13 @@
 {
   "name": "sagax",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": ["dist"],
   "license": "MIT",
   "author": "awaw00<awaw0618@outlook.com>",
   "description": "play mobx with saga",
+  "repository": "https://github.com/awaw00/sagax",
   "scripts": {
     "build": "rimraf dist && tsc --pretty",
     "build:watch": "rimraf dist && tsc --pretty -w"

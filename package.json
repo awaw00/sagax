@@ -1,9 +1,9 @@
 {
   "name": "sagax",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["./dist"],
+  "files": ["dist"],
   "license": "MIT",
   "author": "awaw00<awaw0618@outlook.com>",
   "description": "play mobx with saga",

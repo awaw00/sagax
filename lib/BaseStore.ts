@@ -1,7 +1,7 @@
 import invariant from './invariant';
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { Action, ApiType, ApiResState, BaseStoreConfig, BaseStoreStaticConfig, ApiCallWithConfig } from './types';
-import { Task } from 'redux-saga';
+import { Task, SagaIterator } from 'redux-saga';
 import { all, fork, put, takeLatest, call } from 'redux-saga/effects';
 import { isApiType, runInAction, getRandomText, getClassMembersDescriptor } from './utils';
 import SagaRunner from './SagaRunner';
@@ -60,7 +60,7 @@ export default class BaseStore {
     return this.sagaRunner.dispatch(action);
   }
 
-  runSaga (saga: (...args: any[]) => Iterator<any>): Task {
+  runSaga (saga: () => SagaIterator): Task {
     return this.sagaRunner.runSaga(saga);
   }
 

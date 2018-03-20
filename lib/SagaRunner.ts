@@ -1,6 +1,6 @@
 import { Action } from './types';
-import { runSaga, Task, END, RunSagaOptions } from 'redux-saga';
-import { SagaOptions, ReduxStore } from './types';
+import { runSaga, Task, END, RunSagaOptions, SagaMiddleware, SagaIterator } from 'redux-saga';
+import { SagaOptions } from './types';
 
 type Callback<T> = (cb: (T | END)) => void;
 
@@ -8,8 +8,7 @@ class SagaRunner<T extends Action = Action> {
   
   private subscribes: Callback<T>[] = [];
   private stores: {[name: string]: any} = {};
-  private reduxStore: ReduxStore;
-  private reduxDispatch: (action: T) => T;
+  private sagaMiddleware: SagaMiddleware<any>;
 
   constructor (private sagaOptions: SagaOptions = {}) {
     this.subscribe = this.subscribe.bind(this);
@@ -18,10 +17,6 @@ class SagaRunner<T extends Action = Action> {
   }
 
   dispatch (action: T) {
-    if (this.reduxDispatch) {
-      this.reduxDispatch(action);
-    }
-
     const arr = this.subscribes.slice();
     for (let i = 0, len =  arr.length; i < len; i++) {
       arr[i](action);
@@ -37,14 +32,14 @@ class SagaRunner<T extends Action = Action> {
   }
 
   getState () {
-    if (this.reduxStore) {
-      return this.reduxStore.getState();
-    }
-
     return this.stores;
   }
 
-  runSaga (saga: (...args: any[]) => Iterator<any>): Task {
+  runSaga (saga: () => SagaIterator): Task {
+    if (this.sagaMiddleware) {
+      return this.sagaMiddleware.run(saga);
+    }
+
     const runSagaOptions: RunSagaOptions<T, any> = {
       subscribe: this.subscribe,
       dispatch: this.dispatch,
@@ -73,14 +68,8 @@ class SagaRunner<T extends Action = Action> {
     }
   }
 
-  linkReduxStore (store: ReduxStore) {
-    this.reduxStore = store;
-    this.reduxDispatch = store.dispatch;
-
-    store.dispatch = (action: T) => {
-      this.reduxDispatch(action);
-      return this.dispatch(action);
-    };
+  useSagaMiddleware (middleware: SagaMiddleware<any>) {
+    this.sagaMiddleware = middleware;
   }
 
   private subscribe (callback: Callback<T>) {

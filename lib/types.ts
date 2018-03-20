@@ -2,14 +2,8 @@ import SagaRunner from './SagaRunner';
 import { AxiosRequestConfig } from 'axios';
 import { Monitor } from 'redux-saga';
 
-export interface ReduxStore<S = any> {
-  dispatch (action: any): any;
-  getState (): S;
-}
-
 export interface SagaOptions {
   monitor?: Monitor;
-  linkReduxStore?: ReduxStore;
 }
 
 /**

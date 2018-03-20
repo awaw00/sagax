@@ -1,4 +1,4 @@
-import { BaseStore, api, bind, getApiCallType, typeDef, apiTypeDef, runSaga, ApiType } from '../../index';
+import { BaseStore, api, bind, getApiCallType, ApiResState, typeDef, apiTypeDef, runSaga, ApiType } from '../../index';
 import { delay } from 'redux-saga';
 import { put, take, call, race, all } from 'redux-saga/effects';
 import { observable, toJS } from 'mobx';

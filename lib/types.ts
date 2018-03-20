@@ -3,7 +3,7 @@ import { AxiosRequestConfig } from 'axios';
 import { Monitor } from 'redux-saga';
 
 export interface ReduxStore<S = any> {
-  dispatch (action: Action): Action;
+  dispatch (action: any): any;
   getState (): S;
 }
 

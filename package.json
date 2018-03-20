@@ -3,7 +3,9 @@
   "version": "0.0.10",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "license": "MIT",
   "author": "awaw00<awaw0618@outlook.com>",
   "description": "play mobx with saga",
@@ -14,12 +16,15 @@
   },
   "devDependencies": {
     "@types/jest": "^22.1.4",
+    "jest": "^22.4.2",
     "rimraf": "^2.6.2",
     "rollup": "^0.56.5",
     "rollup-plugin-typescript2": "^0.12.0",
     "rollup-plugin-uglify": "^3.0.0",
     "temp-dir": "^1.0.0",
-    "typescript": "2.7.2"
+    "ts-jest": "^22.4.2",
+    "tslint": "^5.9.1",
+    "typescript": "^2.7.2"
   },
   "peerDependencies": {
     "axios": "^0.18.0",

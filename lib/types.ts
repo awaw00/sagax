@@ -47,7 +47,7 @@ export interface BaseStoreConfig {
   bindState?: boolean;
 }
 
-export interface ApiResState<T = any> {
+export interface AsyncState<T = any> {
   loading: boolean;
   error: null | Error;
   data: null | T;

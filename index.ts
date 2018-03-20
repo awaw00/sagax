@@ -11,4 +11,4 @@ const { runInAction } = utils;
 
 export { types, utils, runInAction };
 
-export { ApiType, Action, ActionType, ApiResState } from './lib/types';
+export { ApiType, Action, ActionType, AsyncState } from './lib/types';

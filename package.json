@@ -10,7 +10,8 @@
   "repository": "https://github.com/awaw00/sagax",
   "scripts": {
     "build": "rimraf dist && tsc --pretty",
-    "build:watch": "rimraf dist && tsc --pretty -w"
+    "build:watch": "rimraf dist && tsc --pretty -w",
+    "publish": "npm run build && npm publish"
   },
   "devDependencies": {
     "@types/jest": "^22.1.4",

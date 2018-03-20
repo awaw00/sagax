@@ -12,7 +12,8 @@
   "repository": "https://github.com/awaw00/sagax",
   "scripts": {
     "build": "rimraf dist && tsc --pretty",
-    "build:watch": "rimraf dist && tsc --pretty -w"
+    "build:watch": "rimraf dist && tsc --pretty -w",
+    "test": "jest --watch"
   },
   "devDependencies": {
     "@types/jest": "^22.1.4",
@@ -27,11 +28,38 @@
     "typescript": "^2.7.2"
   },
   "peerDependencies": {
-    "axios": "^0.18.0",
-    "mobx": "^3.6.1",
-    "redux-saga": "^0.16"
+    "axios": "0.18.0",
+    "mobx": "3.6.1",
+    "redux-saga": "0.16"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org"
+  },
+  "jest": {
+    "collectCoverageFrom": [
+      "lib/**/*.{js,jsx,ts,tsx}"
+    ],
+    "testMatch": [
+      "<rootDir>/lib/**/__tests__/**/*.ts?(x)",
+      "<rootDir>/lib/**/?(*.)(spec|test).ts?(x)"
+    ],
+    "testEnvironment": "node",
+    "testURL": "http://localhost",
+    "transform": {
+      "^.+\\.tsx?$": "ts-jest"
+    },
+    "transformIgnorePatterns": [
+      "[/\\\\]node_modules[/\\\\].+\\.(js|jsx|mjs|ts|tsx)$"
+    ],
+    "watchPathIgnorePatterns": [
+      "<rootDir>/node_modules/"
+    ],
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "jsx",
+      "json"
+    ]
   }
 }

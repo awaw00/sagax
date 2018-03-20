@@ -8,19 +8,17 @@ class SagaRunner<T extends Action = Action> {
   
   private subscribes: Callback<T>[] = [];
   private stores: {[name: string]: any} = {};
-  private linkReduxStore: ReduxStore;
+  private reduxStore: ReduxStore;
 
   constructor (private sagaOptions: SagaOptions = {}) {
     this.subscribe = this.subscribe.bind(this);
     this.dispatch = this.dispatch.bind(this);
     this.runSaga = this.runSaga.bind(this);
-
-    this.linkReduxStore = sagaOptions.linkReduxStore;
   }
 
   dispatch (action: T) {
-    if (this.linkReduxStore) {
-      this.linkReduxStore.dispatch(action);
+    if (this.reduxStore) {
+      this.reduxStore.dispatch(action);
     }
 
     const arr = this.subscribes.slice();
@@ -38,8 +36,8 @@ class SagaRunner<T extends Action = Action> {
   }
 
   getState () {
-    if (this.linkReduxStore) {
-      return this.linkReduxStore.getState();
+    if (this.reduxStore) {
+      return this.reduxStore.getState();
     }
 
     return this.stores;
@@ -72,6 +70,16 @@ class SagaRunner<T extends Action = Action> {
     if (this.stores[key]) {
       delete this.stores[key];
     }
+  }
+
+  linkReduxStore (store: ReduxStore) {
+    this.reduxStore = store;
+    const reduxDispatch = store.dispatch;
+
+    store.dispatch = (action: T) => {
+      this.dispatch(action);
+      return reduxDispatch(action);
+    };
   }
 
   private subscribe (callback: Callback<T>) {

@@ -1,6 +1,6 @@
 import { Action } from './types';
 import { runSaga, Task, END, RunSagaOptions } from 'redux-saga';
-import { SagaOptions } from './types';
+import { SagaOptions, ReduxStore } from './types';
 
 type Callback<T> = (cb: (T | END)) => void;
 
@@ -8,14 +8,21 @@ class SagaRunner<T extends Action = Action> {
   
   private subscribes: Callback<T>[] = [];
   private stores: {[name: string]: any} = {};
+  private linkReduxStore: ReduxStore;
 
   constructor (private sagaOptions: SagaOptions = {}) {
     this.subscribe = this.subscribe.bind(this);
     this.dispatch = this.dispatch.bind(this);
     this.runSaga = this.runSaga.bind(this);
+
+    this.linkReduxStore = sagaOptions.linkReduxStore;
   }
 
   dispatch (action: T) {
+    if (this.linkReduxStore) {
+      this.linkReduxStore.dispatch(action);
+    }
+
     const arr = this.subscribes.slice();
     for (let i = 0, len =  arr.length; i < len; i++) {
       arr[i](action);
@@ -30,11 +37,19 @@ class SagaRunner<T extends Action = Action> {
     return action;
   }
 
+  getState () {
+    if (this.linkReduxStore) {
+      return this.linkReduxStore.getState();
+    }
+
+    return this.stores;
+  }
+
   runSaga (saga: (...args: any[]) => Iterator<any>): Task {
     const runSagaOptions: RunSagaOptions<T, any> = {
       subscribe: this.subscribe,
       dispatch: this.dispatch,
-      getState: () => this.stores
+      getState: this.getState
     };
 
     if (this.sagaOptions.monitor) {

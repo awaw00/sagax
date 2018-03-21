@@ -1,7 +1,7 @@
 export { default as BaseStore } from './lib/BaseStore';
 export { default as SagaRunner } from './lib/SagaRunner';
-export { getApiType, getAsyncState } from './lib/utils';
-export { api, bind, typeDef, apiTypeDef, runSaga } from './lib/decorators';
+export { getAsyncType, getAsyncState } from './lib/utils';
+export { api, bind, typeDef, asyncTypeDef, runSaga } from './lib/decorators';
 export { default as invariant } from './lib/invariant';
 
 import * as utils from './lib/utils';
@@ -11,4 +11,4 @@ const { runInAction } = utils;
 
 export { types, utils, runInAction };
 
-export { ApiType, Action, ActionType, AsyncState } from './lib/types';
+export { AsyncType, Action, ActionType, AsyncState } from './lib/types';

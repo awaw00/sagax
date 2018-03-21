@@ -1,8 +1,8 @@
 import {
-  BaseStore, api, bind, getApiType, getAsyncState, AsyncState, typeDef, apiTypeDef, runSaga, ApiType
+  BaseStore, api, bind, getAsyncType, getAsyncState, AsyncState, typeDef, asyncTypeDef, runSaga, AsyncType
 } from '../../index';
 import { delay } from 'redux-saga';
-import { put, take, call, race, all } from 'redux-saga/effects';
+import { put, take, fork, call, race, all } from 'redux-saga/effects';
 import { observable, toJS } from 'mobx';
 
 describe('BaseStore', () => {
@@ -24,7 +24,7 @@ describe('BaseStore', () => {
 
   test('方法绑定上下文', () => {
     class BindTest extends BaseStore {
-      @apiTypeDef static readonly API_TYPE: ApiType;
+      @asyncTypeDef API_TYPE: AsyncType;
 
       @bind
       func () {
@@ -32,8 +32,8 @@ describe('BaseStore', () => {
       }
 
       @api('API_TYPE')
-      funcApiCallWith () {
-        return this;
+      apiFunc () {
+        return Promise.resolve(this);
       }
 
       @bind
@@ -44,38 +44,28 @@ describe('BaseStore', () => {
 
     const bindTest = new BindTest();
     const func = bindTest.func;
-    const funcApiCallWith = bindTest.funcApiCallWith;
+    const apiFunc = bindTest.apiFunc;
 
     expect(func()).toEqual(bindTest);
-    expect(funcApiCallWith()).toEqual(bindTest);
 
     const generatorFunc = bindTest.generatorFunc;
     const gen = generatorFunc();
 
     expect(gen.next().value).toEqual(bindTest);
+
+    return apiFunc().then(res => expect(res).toEqual(bindTest));
   });
 
-  test('apiType和typeDef自动赋值', () => {
+  test('asyncType和typeDef自动赋值', () => {
     class TypeTest extends BaseStore {
-      @typeDef static readonly TYPE_A: string;
-      @apiTypeDef static readonly TYPE_API_A: ApiType;
-      @typeDef readonly TYPE_B: string;
-      @apiTypeDef readonly TYPE_API_B: ApiType;
+      @typeDef TYPE_B: string;
+      @asyncTypeDef TYPE_API_B: AsyncType;
     }
-
-    expect(TypeTest.TYPE_A).toBe('TypeTest/TYPE_A');
-    expect(TypeTest.TYPE_API_A).toEqual({
-      PRE_REQUEST: 'TypeTest/TYPE_API_A/PRE_REQUEST',
-      REQUEST: 'TypeTest/TYPE_API_A/REQUEST',
-      SUCCESS: 'TypeTest/TYPE_API_A/SUCCESS',
-      FAILURE: 'TypeTest/TYPE_API_A/FAILURE'
-    });
 
     const typeTest = new TypeTest({key: 'test'});
 
     expect(typeTest.TYPE_B).toBe('TypeTest<test>/TYPE_B');
     expect(typeTest.TYPE_API_B).toEqual({
-      PRE_REQUEST: 'TypeTest<test>/TYPE_API_B/PRE_REQUEST',
       REQUEST: 'TypeTest<test>/TYPE_API_B/REQUEST',
       SUCCESS: 'TypeTest<test>/TYPE_API_B/SUCCESS',
       FAILURE: 'TypeTest<test>/TYPE_API_B/FAILURE'
@@ -87,45 +77,68 @@ describe('BaseStore', () => {
     expect(key).toMatch(/^[a-zA-Z]{6}$/);
     expect(randomKeyTypeTest.TYPE_B).toBe(`TypeTest<${key}>/TYPE_B`);
     expect(randomKeyTypeTest.TYPE_API_B).toEqual({
-      PRE_REQUEST: `TypeTest<${key}>/TYPE_API_B/PRE_REQUEST`,
       REQUEST: `TypeTest<${key}>/TYPE_API_B/REQUEST`,
       SUCCESS: `TypeTest<${key}>/TYPE_API_B/SUCCESS`,
       FAILURE: `TypeTest<${key}>/TYPE_API_B/FAILURE`
     });
   });
 
-  test('apiCallWith默认参数', () => {
-    class ApiCallWithTest extends BaseStore {
-      @apiTypeDef API_TEST: ApiType;
+  test('api默认参数', () => {
+    class ApiTest extends BaseStore {
+      @asyncTypeDef API_TEST: AsyncType;
 
       @api('API_TEST', {defaultParams: {page: 0, size: 999}})
       apiTest (params?: any) {
-        return params;
+        return Promise.resolve(params);
       }
     }
 
-    const store = new ApiCallWithTest();
+    const store = new ApiTest();
 
-    expect(store.apiTest()).toEqual({page: 0, size: 999});
-    expect(store.apiTest({page: 1})).toEqual({page: 1, size: 999});
-    expect(store.apiTest({other: true})).toEqual({page: 0, size: 999, other: true});
+    return Promise.all([
+      store.apiTest().then(data => {
+        expect(data).toEqual({page: 0, size: 999});
+      }),
+      store.apiTest({page: 1}).then(data => {
+        expect(data).toEqual({page: 1, size: 999});
+      }),
+      store.apiTest({other: true}).then(data => {
+        expect(data).toEqual({page: 0, size: 999, other: true});
+      }),
+    ]);
   });
 
-  test('apiCallWith绑定接收字段', () => {
+  test('api绑定接收字段', () => {
     const initialData = 'initial';
     const data = 'received data';
 
     class BindKeyTest extends BaseStore {
-      @apiTypeDef API_TEST: ApiType;
+      @asyncTypeDef NOT_A_API: AsyncType;
+      @asyncTypeDef API: AsyncType;
 
       @observable data = getAsyncState<string>(initialData);
+      @observable apiData = getAsyncState();
 
-      @api('API_TEST', {bindState: 'data'})
+      @api('NOT_A_API', {bindState: 'data', axiosApi: false})
       getData () {
         return new Promise((resolve) => {
           setTimeout(
             () => {
               resolve(data);
+            },
+            10
+          );
+        });
+      }
+
+      @api('API', {bindState: 'apiData'})
+      getApiData () {
+        return new Promise((resolve) => {
+          setTimeout(
+            () => {
+              resolve({
+                data: 'apiData'
+              });
             },
             10
           );
@@ -141,38 +154,42 @@ describe('BaseStore', () => {
       loading: false
     });
 
-    return store.runSaga(function* () {
-      yield put({type: store.API_TEST.REQUEST});
-      expect(store.data.loading).toBe(true);
+    return Promise.all([
+      store.runSaga(function* () {
+        yield take(store.NOT_A_API.REQUEST);
+        expect(store.data.loading).toBe(true);
 
-      yield take(store.API_TEST.SUCCESS);
-      expect(store.data.data).toBe(data);
-      expect(store.data.loading).toBe(false);
+        yield take(store.NOT_A_API.SUCCESS);
+        expect(store.data.data).toBe(data);
+        expect(store.data.loading).toBe(false);
 
-    }).done;
+      }).done,
+      store.runSaga(function* () {
+        yield take(store.API.REQUEST);
+        expect(store.apiData.loading).toBe(true);
+
+        yield take(store.API.SUCCESS);
+        expect(store.apiData.data).toBe('apiData');
+        expect(store.apiData.loading).toBe(false);
+      }),
+      store.getData(),
+      store.getApiData()
+    ]);
   });
 
-  test('apiType自动监听', () => {
+  test('asyncType自动监听', () => {
     class ApiCallWithTest extends BaseStore {
-      @apiTypeDef static readonly API_WILL_SUCCESS: ApiType;
-      @apiTypeDef static readonly API_WILL_FAILURE: ApiType;
+      @asyncTypeDef API_WILL_SUCCESS: AsyncType;
+      @asyncTypeDef API_WILL_FAILURE: AsyncType;
 
-      @apiTypeDef static readonly API_PRIORITY_TEST: ApiType;
-      @apiTypeDef readonly API_PRIORITY_TEST: ApiType;
-
-      @api('API_WILL_SUCCESS')
+      @api('API_WILL_SUCCESS', {axiosApi: false})
       successApi (params: any) {
         return Promise.resolve(params);
       }
 
-      @api('API_WILL_FAILURE')
+      @api('API_WILL_FAILURE', {axiosApi: false})
       failureApi (params: any) {
         return Promise.reject('failure');
-      }
-
-      @api('API_PRIORITY_TEST')
-      priorityTestApi (params: any) {
-        return Promise.resolve(params);
       }
     }
 
@@ -184,19 +201,16 @@ describe('BaseStore', () => {
       const {timeout, res} = yield race({
         timeout: call(delay, 1000),
         res: all([
-          take(ApiCallWithTest.API_WILL_SUCCESS.SUCCESS),
-          take(ApiCallWithTest.API_WILL_FAILURE.FAILURE),
-          take(apiCallWithTest.API_PRIORITY_TEST.SUCCESS),
-          put({type: ApiCallWithTest.API_WILL_SUCCESS.REQUEST, payload: params}),
-          put({type: ApiCallWithTest.API_WILL_FAILURE.REQUEST, payload: params}),
-          put({type: apiCallWithTest.API_PRIORITY_TEST.REQUEST, payload: params})
+          take(apiCallWithTest.API_WILL_SUCCESS.SUCCESS),
+          take(apiCallWithTest.API_WILL_FAILURE.FAILURE),
+          fork(apiCallWithTest.successApi, params),
+          fork(apiCallWithTest.failureApi, params)
         ])
       });
 
       expect(timeout).toBe(undefined);
       expect(res[0].payload).toEqual(params);
       expect(res[1].payload).toBe('failure');
-      expect(res[2].payload).toEqual(params);
 
     }).done;
   });
@@ -258,10 +272,10 @@ describe('BaseStore', () => {
 
   test('可开关的bindState', () => {
     class BindTest extends BaseStore {
-      @apiTypeDef API_TYPE: ApiType;
+      @asyncTypeDef API_TYPE: AsyncType;
       @observable apiRes = getAsyncState();
 
-      @api('API_TYPE', {bindState: 'apiRes'})
+      @api('API_TYPE', {bindState: 'apiRes', axiosApi: false})
       apiFunc () {
         return new Promise(resolve => {
           setTimeout(
@@ -281,13 +295,12 @@ describe('BaseStore', () => {
     const noBindApiRes = toJS(noBindTest.apiRes);
 
     return bindTest.runSaga(function* () {
-      yield put({type: bindTest.API_TYPE.REQUEST});
-      yield put({type: noBindTest.API_TYPE.REQUEST});
-
       yield all(
         [
           take(bindTest.API_TYPE.SUCCESS),
-          take(noBindTest.API_TYPE.SUCCESS)
+          take(noBindTest.API_TYPE.SUCCESS),
+          fork(bindTest.apiFunc),
+          fork(noBindTest.apiFunc)
         ]
       );
       expect(bindApiRes).not.toEqual(toJS(bindTest.apiRes));

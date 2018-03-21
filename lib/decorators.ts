@@ -1,10 +1,15 @@
-import { ApiCallWithConfig, ApiType } from './types';
-import { getApiType } from './utils';
+import { ApiConfig, AsyncType } from './types';
+import { getAsyncType } from './utils';
 
-export function api (apiCallTypeName: string, config: ApiCallWithConfig = {}): MethodDecorator {
+export function api (asyncTypeName: string, config: ApiConfig = {}): MethodDecorator {
   return function (target: any, key: string, descriptor: any) {
-    config.apiCallTypeName = apiCallTypeName;
-    descriptor.value.$apiCallWith = config;
+    config.asyncTypeName = asyncTypeName;
+    if (typeof config.axiosApi !== 'undefined') {
+      config.axiosApi = Boolean(config.axiosApi);
+    } else {
+      config.axiosApi = true;
+    }
+    descriptor.value.$apiConfig = config;
     descriptor.value.$bind = true;
     return descriptor;
   };
@@ -18,8 +23,9 @@ export function bind (target: any, key: string, descriptor: any) {
 export function typeDef (target: any, key: string): any {
   if (typeof target === 'function') {
     // static type
-    const namespace = target.name;
-    target[key] = `${namespace}/${key}`;
+    // const namespace = target.name;
+    // target[key] = `${namespace}/${key}`;
+    console.warn('typeDef is not compatible with static field.');
     return target;
   } else {
     // instance type
@@ -36,20 +42,19 @@ export function typeDef (target: any, key: string): any {
   }
 }
 
-export function apiTypeDef (target: any, key: string): any {
+export function asyncTypeDef (target: any, key: string): any {
   if (typeof target === 'function') {
-    // static api type
-    const namespace = target.name;
-    target[key] = getApiType(key, namespace);
+    // const namespace = target.name;
+    // target[key] = getAsyncType(key, namespace);
+    console.warn('asyncTypeDef is not compatible with static field.');
     return target;
   } else {
-    // instance api type
     return {
       get () {
         const cacheKey = '__' + key;
         if (!this[cacheKey]) {
           const namespace = this.constructor.name;
-          this[cacheKey] = getApiType(key, namespace, this.key);
+          this[cacheKey] = getAsyncType(key, namespace, this.key);
         }
         return this[cacheKey];
       }

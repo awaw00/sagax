@@ -3,17 +3,29 @@ import { runSaga, Task, END, RunSagaOptions, SagaMiddleware, SagaIterator } from
 import { SagaOptions } from './types';
 
 type Callback<T> = (cb: (T | END)) => void;
+export type Saga = () => Iterator<any>;
 
 class SagaRunner<T extends Action = Action> {
   
   private subscribes: Callback<T>[] = [];
   private stores: {[name: string]: any} = {};
   private sagaMiddleware: SagaMiddleware<any>;
+  private bindRunSaga: (saga: Saga, ...args: any[]) => Task;
 
   constructor (private sagaOptions: SagaOptions = {}) {
     this.subscribe = this.subscribe.bind(this);
     this.dispatch = this.dispatch.bind(this);
-    this.runSaga = this.runSaga.bind(this);
+
+    const runSagaOptions: RunSagaOptions<T, any> = {
+      subscribe: this.subscribe,
+      dispatch: this.dispatch,
+      getState: this.getState
+    };
+
+    if (this.sagaOptions.monitor) {
+      runSagaOptions.sagaMonitor = this.sagaOptions.monitor;
+    }
+    this.bindRunSaga = this.rawRunSaga.bind(this, runSagaOptions);
   }
 
   dispatch (action: T) {
@@ -35,24 +47,8 @@ class SagaRunner<T extends Action = Action> {
     return this.stores;
   }
 
-  runSaga (saga: () => SagaIterator): Task {
-    if (this.sagaMiddleware) {
-      return this.sagaMiddleware.run(saga);
-    }
-
-    const runSagaOptions: RunSagaOptions<T, any> = {
-      subscribe: this.subscribe,
-      dispatch: this.dispatch,
-      getState: this.getState
-    };
-
-    if (this.sagaOptions.monitor) {
-      runSagaOptions.sagaMonitor = this.sagaOptions.monitor;
-    }
-    return runSaga<T, any>(
-      runSagaOptions,
-      saga
-    );
+  runSaga (saga: Saga, ...args: any[]) {
+    return this.bindRunSaga.apply(this, [saga, ...args]);
   }
 
   registerStore (key: string, store: any) {
@@ -80,6 +76,17 @@ class SagaRunner<T extends Action = Action> {
         this.subscribes.splice(index, 1);
       }
     };
+  }
+
+  private rawRunSaga (options: RunSagaOptions<T, any>, saga: () => Iterator<any>): Task {
+    if (this.sagaMiddleware) {
+      return this.sagaMiddleware.run(saga);
+    }
+
+    return runSaga<T, any>(
+      options,
+      saga
+    );
   }
 }
 

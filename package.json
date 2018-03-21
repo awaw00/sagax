@@ -13,7 +13,7 @@
   "scripts": {
     "build": "rimraf dist && tsc --pretty",
     "build:watch": "rimraf dist && tsc --pretty -w",
-    "test": "jest --watch"
+    "test": "jest --watch --verbose"
   },
   "devDependencies": {
     "@types/jest": "^22.1.4",

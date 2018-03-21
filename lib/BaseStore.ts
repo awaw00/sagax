@@ -1,9 +1,9 @@
 import invariant from './invariant';
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
-import { Action, ApiType, AsyncState, BaseStoreConfig, BaseStoreStaticConfig, ApiCallWithConfig } from './types';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { Action, AsyncType, AsyncState, BaseStoreConfig, BaseStoreStaticConfig, ApiConfig } from './types';
 import { Task, SagaIterator } from 'redux-saga';
 import { all, fork, put, takeLatest, call } from 'redux-saga/effects';
-import { isApiType, runInAction, getRandomText, getClassMembersDescriptor } from './utils';
+import { isAsyncType, runInAction, getRandomText, getClassMembersDescriptor } from './utils';
 import SagaRunner from './SagaRunner';
 
 export default class BaseStore {
@@ -14,7 +14,7 @@ export default class BaseStore {
   key: string;
   http: AxiosInstance;
   sagaRunner: SagaRunner;
-  apiResponseTransformer: (apiRes?: any) => any;
+  apiResToState: (apiRes?: any) => any;
   bindState: boolean;
 
   static init (baseStoreConfig: BaseStoreStaticConfig = {}) {
@@ -44,8 +44,8 @@ export default class BaseStore {
       this.sagaRunner.registerStore(baseStoreConfig.key, this);
     }
 
-    if (baseStoreConfig.apiResponseTransformer) {
-      this.apiResponseTransformer = baseStoreConfig.apiResponseTransformer;
+    if (baseStoreConfig.apiResToState) {
+      this.apiResToState = baseStoreConfig.apiResToState;
     }
 
     this.bindState = baseStoreConfig.bindState;
@@ -60,7 +60,7 @@ export default class BaseStore {
     return this.sagaRunner.dispatch(action);
   }
 
-  runSaga (saga: () => SagaIterator): Task {
+  runSaga (saga: () => Iterator<any>): Task {
     return this.sagaRunner.runSaga(saga);
   }
 
@@ -76,14 +76,14 @@ export default class BaseStore {
       }
       const func = this[name];
       // 先把标记取出来，因为在bind之后，标记会丢失
-      const {$bind, $apiCallWith, $runSaga} = func;
+      const {$bind, $apiConfig, $runSaga} = func;
 
       if ($bind) {
         this[name] = this[name].bind(this);
       }
 
-      if ($apiCallWith) {
-        const {defaultParams} = $apiCallWith;
+      if ($apiConfig) {
+        const {defaultParams} = $apiConfig;
         if (defaultParams !== void 0) {
           this[name] = function (params: any) {
             params = Object.assign({}, defaultParams, params);
@@ -91,7 +91,7 @@ export default class BaseStore {
           };
         }
 
-        this.runCallWithSaga(name, $apiCallWith);
+        this.runCallWithSaga(name, $apiConfig);
       }
 
       if ($runSaga) {
@@ -107,18 +107,17 @@ export default class BaseStore {
     }
   }
 
-  private runCallWithSaga (funcName: string, apiCallWithConfig: ApiCallWithConfig) {
+  private runCallWithSaga (funcName: string, apiConfig: ApiConfig) {
     let func = this[funcName];
 
-    const {apiCallTypeName, bindState} = apiCallWithConfig;
+    const {asyncTypeName, bindState, axiosApi, defaultParams} = apiConfig;
 
-    // try get instance type first
-    let apiCallType: ApiType = this[apiCallTypeName] || this.constructor[apiCallTypeName];
+    let asyncType: AsyncType = this[asyncTypeName];
 
     invariant(
-      isApiType(apiCallType),
-      'invalid apiCallType: %s',
-      JSON.stringify(apiCallType)
+      isAsyncType(asyncType),
+      'invalid asyncType: %s',
+      JSON.stringify(asyncType)
     );
 
     invariant(
@@ -128,45 +127,54 @@ export default class BaseStore {
     );
 
     const that = this;
-    this.runSaga(function* () {
-      yield takeLatest(apiCallType.REQUEST, function* ({payload}: Action) {
-        const self: BaseStore = yield that;
-        const hasBindState = bindState && (bindState in self) && self.bindState;
 
+    const hasBindState = bindState && (bindState in this) && this.bindState;
+
+    this[funcName] = (params: any) => {
+      params = Object.assign({}, defaultParams, params);
+      return this.runSaga(function* () {
         if (hasBindState) {
           yield runInAction(() => {
-            self[bindState].loading = true;
-            self[bindState].error = null;
+            that[bindState].loading = true;
+            that[bindState].error = null;
           });
         }
+        yield put({type: asyncType.REQUEST, payload: params});
 
+        let data: any = null;
         try {
-          let data = yield call(func, payload);
+          data = yield call(func, params);
 
-          if (self.apiResponseTransformer) {
-            data = yield call(self.apiResponseTransformer, data);
+          if (that.apiResToState && axiosApi) {
+            (<AxiosResponse> data).data = yield call(that.apiResToState, data.data);
           }
 
           if (hasBindState) {
             yield runInAction(() => {
-              self[bindState].loading = false;
-              self[bindState].data = data;
+              that[bindState].loading = false;
+              if (axiosApi) {
+                that[bindState].data = (<AxiosResponse> data).data;
+              } else {
+                that[bindState].data = data;
+              }
             });
           }
 
-          yield put({type: apiCallType.SUCCESS, payload: data});
+          yield put({type: asyncType.SUCCESS, payload: data});
         } catch (err) {
           if (hasBindState) {
             yield runInAction(() => {
-              self[bindState].loading = false;
-              self[bindState].error = err;
+              that[bindState].loading = false;
+              that[bindState].error = err;
             });
           }
 
-          yield put({type: apiCallType.FAILURE, payload: err});
+          yield put({type: asyncType.FAILURE, payload: err});
           console.error(err);
         }
-      });
-    });
+
+        return data;
+      }).done;
+    };
   }
 }

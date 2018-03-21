@@ -17,17 +17,18 @@ export type ActionType<T = any> = string;
  * P: 约定触发PRE_REQUEST时需要带的payload类型
  * F: 约定触发FAILURE时会带的payload属性类型
  */
-export interface ApiType<R = any, S = any, P = any, F = any> {
+export interface AsyncType<R = any, S = any, P = any, F = any> {
   PRE_REQUEST?: ActionType<P>;
   REQUEST: ActionType<R>;
   SUCCESS: ActionType<S>;
   FAILURE: ActionType<F>;
 }
 
-export interface ApiCallWithConfig {
-  apiCallTypeName?: string;
+export interface ApiConfig {
+  asyncTypeName?: string;
   defaultParams?: any;
   bindState?: string;
+  axiosApi?: boolean;
 }
 
 export interface Action<T = any> {
@@ -43,7 +44,7 @@ export interface BaseStoreStaticConfig {
 export interface BaseStoreConfig {
   key?: string;
   sagaRunner?: SagaRunner;
-  apiResponseTransformer?: (apiRes?: any) => any;
+  apiResToState?: (apiRes?: any) => any;
   bindState?: boolean;
 }
 

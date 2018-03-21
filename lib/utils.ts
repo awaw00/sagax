@@ -1,6 +1,6 @@
 import { fork, call, CallEffect } from 'redux-saga/effects';
 import { runInAction as mobXRunInAction } from 'mobx';
-import { ApiType, AsyncState } from './types';
+import { AsyncType, AsyncState } from './types';
 
 export function getAsyncState<T> (initialValue: T = null): AsyncState<T> {
   return {
@@ -10,7 +10,7 @@ export function getAsyncState<T> (initialValue: T = null): AsyncState<T> {
   };
 }
 
-export function getApiType (baseType: string, namespace?: string, key?: string): ApiType {
+export function getAsyncType (baseType: string, namespace?: string, key?: string): AsyncType {
   const slicer = '/';
 
   if (namespace) {
@@ -20,15 +20,14 @@ export function getApiType (baseType: string, namespace?: string, key?: string):
   }
 
   return {
-    PRE_REQUEST: `${namespace}${baseType}${slicer}PRE_REQUEST`,
     REQUEST: `${namespace}${baseType}${slicer}REQUEST`,
     SUCCESS: `${namespace}${baseType}${slicer}SUCCESS`,
     FAILURE: `${namespace}${baseType}${slicer}FAILURE`,
   };
 }
 
-export function isApiType (type: any): type is ApiType {
-  return type && type.PRE_REQUEST && type.REQUEST && type.SUCCESS && type.FAILURE;
+export function isAsyncType (type: any): type is AsyncType {
+  return type && type.REQUEST && type.SUCCESS && type.FAILURE;
 }
 
 let randomTextDict: string[] = [];

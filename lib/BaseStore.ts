@@ -64,14 +64,6 @@ export default class BaseStore {
     return this.sagaRunner.runSaga(saga);
   }
 
-  protected getAsyncState<T> (initialValue: T = null): AsyncState<T> {
-    return {
-      error: null,
-      loading: false,
-      data: initialValue
-    };
-  }
-
   private processDecoratedMethods () {
     let prototype = Object.getPrototypeOf(this);
     const membersDescriptor = getClassMembersDescriptor(prototype);

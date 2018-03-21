@@ -1,5 +1,5 @@
 import { ApiCallWithConfig, ApiType } from './types';
-import { getApiCallType } from './utils';
+import { getApiType } from './utils';
 
 export function api (apiCallTypeName: string, config: ApiCallWithConfig = {}): MethodDecorator {
   return function (target: any, key: string, descriptor: any) {
@@ -40,7 +40,7 @@ export function apiTypeDef (target: any, key: string): any {
   if (typeof target === 'function') {
     // static api type
     const namespace = target.name;
-    target[key] = getApiCallType(key, namespace);
+    target[key] = getApiType(key, namespace);
     return target;
   } else {
     // instance api type
@@ -49,7 +49,7 @@ export function apiTypeDef (target: any, key: string): any {
         const cacheKey = '__' + key;
         if (!this[cacheKey]) {
           const namespace = this.constructor.name;
-          this[cacheKey] = getApiCallType(key, namespace, this.key);
+          this[cacheKey] = getApiType(key, namespace, this.key);
         }
         return this[cacheKey];
       }

@@ -1,8 +1,16 @@
 import { fork, call, CallEffect } from 'redux-saga/effects';
 import { runInAction as mobXRunInAction } from 'mobx';
-import { ApiType } from './types';
+import { ApiType, AsyncState } from './types';
 
-export function getApiCallType (baseType: string, namespace?: string, key?: string): ApiType {
+export function getAsyncState<T> (initialValue: T = null): AsyncState<T> {
+  return {
+    error: null,
+    loading: false,
+    data: initialValue
+  };
+}
+
+export function getApiType (baseType: string, namespace?: string, key?: string): ApiType {
   const slicer = '/';
 
   if (namespace) {

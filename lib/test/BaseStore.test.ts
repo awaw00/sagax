@@ -1,4 +1,6 @@
-import { BaseStore, api, bind, getApiCallType, AsyncState, typeDef, apiTypeDef, runSaga, ApiType } from '../../index';
+import {
+  BaseStore, api, bind, getApiType, getAsyncState, AsyncState, typeDef, apiTypeDef, runSaga, ApiType
+} from '../../index';
 import { delay } from 'redux-saga';
 import { put, take, call, race, all } from 'redux-saga/effects';
 import { observable, toJS } from 'mobx';
@@ -116,7 +118,7 @@ describe('BaseStore', () => {
     class BindKeyTest extends BaseStore {
       @apiTypeDef API_TEST: ApiType;
 
-      @observable data = this.getAsyncState<string>(initialData);
+      @observable data = getAsyncState<string>(initialData);
 
       @api('API_TEST', {bindState: 'data'})
       getData () {
@@ -257,7 +259,7 @@ describe('BaseStore', () => {
   test('可开关的bindState', () => {
     class BindTest extends BaseStore {
       @apiTypeDef API_TYPE: ApiType;
-      @observable apiRes = this.getAsyncState();
+      @observable apiRes = getAsyncState();
 
       @api('API_TYPE', {bindState: 'apiRes'})
       apiFunc () {

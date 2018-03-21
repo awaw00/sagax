@@ -35,12 +35,12 @@ UIStore用于管理应用界面渲染所涉及的状态、响应用户界面事�
 
 ```typescript
 // /stores/dataStores.ts
-import { BaseStore, apiTypeDef, ApiType, api } from 'sagax';
+import { BaseStore, apiTypeDef, ApiType, api, getAsyncState } from 'sagax';
 import { observable } from 'mobx';
 
 export class UserStore extends BaseStore {
   @apiTypeDef GET_USER_INFO: ApiType;
-  @observable userInfo = this.getApiResState();
+  @observable userInfo = getAsyncState();
   
   @api('GET_USER_INFO', {bindState: 'userInfo'})
   getUserInfo () {
@@ -50,7 +50,7 @@ export class UserStore extends BaseStore {
 
 export class OrderStore extends BaseStore {
   @apiTypeDef GET_ORDER_LIST_OF_USER: ApiType;
-  @observable orderListOfUser = this.getApiResState();
+  @observable orderListOfUser = getAsyncState();
   
   @api('GET_ORDER_LIST_OF_USER', {bindState: 'orderListOfUser'})
   getOrderListOfUser (params: any) {
@@ -274,12 +274,6 @@ BaseStoreConfig:
 `runSaga (saga: Saga): Task`
 
 执行一个Saga方法，等同于this.sagaRunner.runSaga(saga)。一般用来运行store的saga入口方法。
-
-### BaseStore.prototype.getApiResState
-
-`protected getApiResState<T> (initialValue: T = null): ApiResState<T>`
-
-初始化一个api状态对象辅助方法，该对象用于存储api接口调用的loading状态、错误信息与返回数据。
 
 ## SagaRunner
 

@@ -139,7 +139,7 @@ export default class BaseStore {
             that[bindState].error = null;
           });
         }
-        yield put({type: asyncType.REQUEST, payload: params});
+        yield put({type: asyncType.START, payload: params});
 
         let data: any = null;
         try {
@@ -160,7 +160,7 @@ export default class BaseStore {
             });
           }
 
-          yield put({type: asyncType.SUCCESS, payload: data});
+          yield put({type: asyncType.END, payload: data});
         } catch (err) {
           if (hasBindState) {
             yield runInAction(() => {
@@ -169,7 +169,7 @@ export default class BaseStore {
             });
           }
 
-          yield put({type: asyncType.FAILURE, payload: err});
+          yield put({type: asyncType.ERROR, payload: err});
           console.error(err);
         }
 

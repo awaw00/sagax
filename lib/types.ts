@@ -1,5 +1,5 @@
 import SagaRunner from './SagaRunner';
-import { AxiosRequestConfig } from 'axios';
+import { AxiosSTARTConfig } from 'axios';
 import { Monitor } from 'redux-saga';
 
 export interface SagaOptions {
@@ -12,16 +12,14 @@ export interface SagaOptions {
 export type ActionType<T = any> = string;
 
 /**
- * R: 约定触发REQUEST时需要带的payload属性类型
- * S: 约定触发SUCCESS时会带的payload属性类型
- * P: 约定触发PRE_REQUEST时需要带的payload类型
- * F: 约定触发FAILURE时会带的payload属性类型
+ * R: 约定触发START时会带的payload属性类型
+ * S: 约定触发END时会带的payload属性类型
+ * F: 约定触发ERROR时会带的payload属性类型
  */
-export interface AsyncType<R = any, S = any, P = any, F = any> {
-  PRE_REQUEST?: ActionType<P>;
-  REQUEST: ActionType<R>;
-  SUCCESS: ActionType<S>;
-  FAILURE: ActionType<F>;
+export interface AsyncType<R = any, S = any, F = any> {
+  START: ActionType<R>;
+  END: ActionType<S>;
+  ERROR: ActionType<F>;
 }
 
 export interface ApiConfig {
@@ -37,7 +35,7 @@ export interface Action<T = any> {
 }
 
 export interface BaseStoreStaticConfig {
-  axiosConfig?: AxiosRequestConfig;
+  axiosConfig?: AxiosSTARTConfig;
   sagaOptions?: SagaOptions;
 }
 

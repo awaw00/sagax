@@ -110,14 +110,14 @@ export class OrderUIStore extends BaseStore {
     
     if (userInfo.loading) {
       // 先检查用户信息是否在加载中，如果是，则等待加载成功
-      yield take(GET_USER_INFO.SUCCESS);
+      yield take(GET_USER_INFO.END);
     } else if (!self.userStore.userInfo.data) {
       // 再检查用户信息是否已存在，若不存在，则发起获取用户信息的请求，并等待请求成功
-      yield put({type: GET_USER_INFO.REQUEST});
-      yield take(GET_USER_INFO.SUCCESS);
+      yield put({type: GET_USER_INFO.START});
+      yield take(GET_USER_INFO.END);
     }
     // 以用户id为参数，发起获取用户订单列表的请求
-    yield put({type: GET_ORDER_LIST_OF_USER.REQUEST, payload: {userId: userInfo.id}});
+    yield put({type: GET_ORDER_LIST_OF_USER.START, payload: {userId: userInfo.id}});
   }
 }
 ```
@@ -289,7 +289,7 @@ BaseStoreConfig:
 
 在初始化BaseStore实例的时候，会根据apiCallTypeName从实例中查找接口对应的ApiType（this[apiCallTypeName])，并自动执行一个监听ApiType的saga。
 
-当`ApiType.REQUEST`的action被触发时，会以`action.payload`为参数执行api接口方法，获取接口返回值后，派发一个type为`ApiType.SUCCESS`、payload为接口方法返回值（若指定了apiResponseTransformer，则会使用该方法对返回值进行处理）的action。若接口方法调用出错，则会派发一个type为`ApiType.FAILURE`的action。
+当`ApiType.START`的action被触发时，会以`action.payload`为参数执行api接口方法，获取接口返回值后，派发一个type为`ApiType.END`、payload为接口方法返回值（若指定了apiResponseTransformer，则会使用该方法对返回值进行处理）的action。若接口方法调用出错，则会派发一个type为`ApiType.ERROR`的action。
 
 ApiCallWithConfig:
 
@@ -344,7 +344,7 @@ ActionType定义属性装饰器。
 
 ApiType定义属性装饰器。
 
-ApiType是由四个ActionType组成的对象： PRE_REQUEST、REQUEST、SUCCESS、FAILURE，分别代表“接口预请求”、“接口请求”、“接口请求成功”、“接口请求失败”四种action。
+ApiType是由四个ActionType组成的对象： PRE_REQUEST、START、END、ERROR，分别代表“接口预请求”、“接口请求”、“接口请求成功”、“接口请求失败”四种action。
 
 其中，PRE_REQUEST用于在接口真正请求发起前，准备请求的参数。
 

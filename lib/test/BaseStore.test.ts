@@ -66,9 +66,9 @@ describe('BaseStore', () => {
 
     expect(typeTest.TYPE_B).toBe('TypeTest<test>/TYPE_B');
     expect(typeTest.TYPE_API_B).toEqual({
-      REQUEST: 'TypeTest<test>/TYPE_API_B/REQUEST',
-      SUCCESS: 'TypeTest<test>/TYPE_API_B/SUCCESS',
-      FAILURE: 'TypeTest<test>/TYPE_API_B/FAILURE'
+      START: 'TypeTest<test>/TYPE_API_B/START',
+      END: 'TypeTest<test>/TYPE_API_B/END',
+      ERROR: 'TypeTest<test>/TYPE_API_B/ERROR'
     });
 
     const randomKeyTypeTest = new TypeTest();
@@ -77,9 +77,9 @@ describe('BaseStore', () => {
     expect(key).toMatch(/^[a-zA-Z]{6}$/);
     expect(randomKeyTypeTest.TYPE_B).toBe(`TypeTest<${key}>/TYPE_B`);
     expect(randomKeyTypeTest.TYPE_API_B).toEqual({
-      REQUEST: `TypeTest<${key}>/TYPE_API_B/REQUEST`,
-      SUCCESS: `TypeTest<${key}>/TYPE_API_B/SUCCESS`,
-      FAILURE: `TypeTest<${key}>/TYPE_API_B/FAILURE`
+      START: `TypeTest<${key}>/TYPE_API_B/START`,
+      END: `TypeTest<${key}>/TYPE_API_B/END`,
+      ERROR: `TypeTest<${key}>/TYPE_API_B/ERROR`
     });
   });
 
@@ -156,19 +156,19 @@ describe('BaseStore', () => {
 
     return Promise.all([
       store.runSaga(function* () {
-        yield take(store.NOT_A_API.REQUEST);
+        yield take(store.NOT_A_API.START);
         expect(store.data.loading).toBe(true);
 
-        yield take(store.NOT_A_API.SUCCESS);
+        yield take(store.NOT_A_API.END);
         expect(store.data.data).toBe(data);
         expect(store.data.loading).toBe(false);
 
       }).done,
       store.runSaga(function* () {
-        yield take(store.API.REQUEST);
+        yield take(store.API.START);
         expect(store.apiData.loading).toBe(true);
 
-        yield take(store.API.SUCCESS);
+        yield take(store.API.END);
         expect(store.apiData.data).toBe('apiData');
         expect(store.apiData.loading).toBe(false);
       }),
@@ -179,17 +179,17 @@ describe('BaseStore', () => {
 
   test('asyncType自动监听', () => {
     class ApiCallWithTest extends BaseStore {
-      @asyncTypeDef API_WILL_SUCCESS: AsyncType;
-      @asyncTypeDef API_WILL_FAILURE: AsyncType;
+      @asyncTypeDef API_WILL_END: AsyncType;
+      @asyncTypeDef API_WILL_ERROR: AsyncType;
 
-      @api('API_WILL_SUCCESS', {axiosApi: false})
-      successApi (params: any) {
+      @api('API_WILL_END', {axiosApi: false})
+      ENDApi (params: any) {
         return Promise.resolve(params);
       }
 
-      @api('API_WILL_FAILURE', {axiosApi: false})
-      failureApi (params: any) {
-        return Promise.reject('failure');
+      @api('API_WILL_ERROR', {axiosApi: false})
+      ERRORApi (params: any) {
+        return Promise.reject('ERROR');
       }
     }
 
@@ -201,16 +201,16 @@ describe('BaseStore', () => {
       const {timeout, res} = yield race({
         timeout: call(delay, 1000),
         res: all([
-          take(apiCallWithTest.API_WILL_SUCCESS.SUCCESS),
-          take(apiCallWithTest.API_WILL_FAILURE.FAILURE),
-          fork(apiCallWithTest.successApi, params),
-          fork(apiCallWithTest.failureApi, params)
+          take(apiCallWithTest.API_WILL_END.END),
+          take(apiCallWithTest.API_WILL_ERROR.ERROR),
+          fork(apiCallWithTest.ENDApi, params),
+          fork(apiCallWithTest.ERRORApi, params)
         ])
       });
 
       expect(timeout).toBe(undefined);
       expect(res[0].payload).toEqual(params);
-      expect(res[1].payload).toBe('failure');
+      expect(res[1].payload).toBe('ERROR');
 
     }).done;
   });
@@ -297,8 +297,8 @@ describe('BaseStore', () => {
     return bindTest.runSaga(function* () {
       yield all(
         [
-          take(bindTest.API_TYPE.SUCCESS),
-          take(noBindTest.API_TYPE.SUCCESS),
+          take(bindTest.API_TYPE.END),
+          take(noBindTest.API_TYPE.END),
           fork(bindTest.apiFunc),
           fork(noBindTest.apiFunc)
         ]

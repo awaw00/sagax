@@ -20,14 +20,14 @@ export function getAsyncType (baseType: string, namespace?: string, key?: string
   }
 
   return {
-    REQUEST: `${namespace}${baseType}${slicer}REQUEST`,
-    SUCCESS: `${namespace}${baseType}${slicer}SUCCESS`,
-    FAILURE: `${namespace}${baseType}${slicer}FAILURE`,
+    START: `${namespace}${baseType}${slicer}START`,
+    END: `${namespace}${baseType}${slicer}END`,
+    ERROR: `${namespace}${baseType}${slicer}ERROR`,
   };
 }
 
 export function isAsyncType (type: any): type is AsyncType {
-  return type && type.REQUEST && type.SUCCESS && type.FAILURE;
+  return type && type.START && type.END && type.ERROR;
 }
 
 let randomTextDict: string[] = [];

@@ -1,5 +1,5 @@
 import SagaRunner from './SagaRunner';
-import { AxiosSTARTConfig } from 'axios';
+import { AxiosRequestConfig } from 'axios';
 import { Monitor } from 'redux-saga';
 
 export interface SagaOptions {
@@ -35,7 +35,7 @@ export interface Action<T = any> {
 }
 
 export interface BaseStoreStaticConfig {
-  axiosConfig?: AxiosSTARTConfig;
+  axiosConfig?: AxiosRequestConfig;
   sagaOptions?: SagaOptions;
 }
 

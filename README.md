@@ -156,6 +156,8 @@ render(<App/>, document.getElementById('root'));
 
 ```
 
+更多详细用法可查阅[测试代码](https://github.com/awaw00/sagax/tree/master/lib/test)
+
 # Document
 
 - core
@@ -446,5 +448,3 @@ export interface ApiConfig {
   axiosApi?: boolean;
 }
 ```
-
-更多详细用法可查阅[测试代码](https://github.com/awaw00/sagax/tree/master/lib/test)

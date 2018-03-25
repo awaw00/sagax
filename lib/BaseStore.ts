@@ -4,25 +4,58 @@ import { Action, AsyncType, AsyncState, BaseStoreConfig, BaseStoreStaticConfig, 
 import { Task, SagaIterator } from 'redux-saga';
 import { all, fork, put, takeLatest, call } from 'redux-saga/effects';
 import { isAsyncType, runInAction, getRandomText, getClassMembersDescriptor } from './utils';
-import SagaRunner from './SagaRunner';
+import SagaRunner, { Saga } from './SagaRunner';
 
 export default class BaseStore {
+  /**
+   * 静态对象是否已进行初始化
+   * @type {boolean}
+   */
   static initialized: boolean = false;
+  /**
+   * 默认的sagaRunner对象，在init静态方法中创建
+   */
   static sagaRunner: SagaRunner;
+  /**
+   * 默认的axios对象，在init静态方法中创建
+   */
   static http: AxiosInstance;
 
+  /**
+   * 见BaseStoreConfig.key
+   */
   key: string;
+  /**
+   * 同BaseStore.http
+   */
   http: AxiosInstance;
+  /**
+   * baseStoreConfig.sagaRunner 或 BaseStore.sagaRunner
+   */
   sagaRunner: SagaRunner;
-  apiResToState: (apiRes?: any) => any;
-  bindState: boolean;
+  /**
+   * 见BaseStoreConfig.bindState
+   */
+  private bindState: boolean;
 
+  /**
+   * 见BaseStoreConfig.apiResToState
+   */
+  private apiResToState: (apiRes?: any) => any;
+
+  /**
+   * 初始化静态字段
+   * @param {BaseStoreStaticConfig} baseStoreConfig
+   */
   static init (baseStoreConfig: BaseStoreStaticConfig = {}) {
     BaseStore.http = axios.create(baseStoreConfig.axiosConfig || {});
     BaseStore.sagaRunner = new SagaRunner(baseStoreConfig.sagaOptions);
     BaseStore.initialized = true;
   }
 
+  /**
+   * 重置静态字段
+   */
   static reset () {
     BaseStore.http = void 0;
     BaseStore.sagaRunner = void 0;
@@ -56,12 +89,23 @@ export default class BaseStore {
     this.processDecoratedMethods();
   }
 
+  /**
+   * 派发一个action
+   * @param {Action} action
+   * @returns {Action}
+   */
   dispatch (action: Action) {
     return this.sagaRunner.dispatch(action);
   }
 
-  runSaga (saga: () => Iterator<any>): Task {
-    return this.sagaRunner.runSaga(saga);
+  /**
+   * 执行Saga方法
+   * @param {Saga} saga 要执行的saga方法
+   * @param args        saga方法的参数列表
+   * @returns {Task}    sagaTask
+   */
+  runSaga (saga: Saga, ...args: any[]): Task {
+    return this.sagaRunner.runSaga.apply(this, [saga, ...args]);
   }
 
   private processDecoratedMethods () {

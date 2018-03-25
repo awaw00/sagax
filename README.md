@@ -1,25 +1,23 @@
 Saga + MobX = SagaX
 ----
 
-持续开发中，下述文档可能已过时。
-
 # 基本理念
 
 将应用状态划分到三类Store中：
 
-- DataStore  数据Store
-- LogicStore 逻辑Store
-- UIStore    界面Store
+- ServiceStore  服务Store
+- LogicStore    逻辑Store
+- UIStore       界面Store
 
-其中，DataStore用于定义接口调用方法、接口相关的ActionType和接口状态。
+其中，ServiceStore用于定义接口调用方法、接口相关的ActionType和接口状态。
 
-LogicStore用于管理应用的逻辑过程和中间状态，比如，控制应用加载时的初始化流程（加载本地缓存、调用初始化数据接口等）、控制页面的渲染时机。
+LogicStore用于管理应用的逻辑过程和中间状态，比如，控制应用加载时的初始化流程（如调用初始化数据接口等）、控制页面的渲染时机。
 
-UIStore用于管理应用界面渲染所涉及的状态、响应用户界面事件。
+UIStore用于管理应用界面渲染所涉及的状态数据、响应用户界面事件。
 
 当然，上面的划分方式并不是强制性的，在某些场景下（逻辑并不复杂的场景）把LogicStore与UIStore合二为一也许会更加合适。
 
-**但是保持DataStore的独立性对项目中后期的可维护性和可扩展性来说，是非常重要的。**
+**但是保持ServiceStore的独立性对项目中后期的可维护性和可扩展性来说，是非常重要的。**
 
 # 构成
 
@@ -36,27 +34,27 @@ UIStore用于管理应用界面渲染所涉及的状态、响应用户界面事�
 定义数据Store：
 
 ```typescript
-// /stores/dataStores.ts
-import { BaseStore, apiTypeDef, ApiType, api, getAsyncState } from 'sagax';
+// /stores/serviceStores.ts
+import { BaseStore, apiTypeDef, AsyncType, api, getAsyncState } from 'sagax';
 import { observable } from 'mobx';
 
-export class UserStore extends BaseStore {
-  @apiTypeDef GET_USER_INFO: ApiType;
+export class UserService extends BaseStore {
+  @apiTypeDef GET_USER_INFO: AsyncType;
   @observable userInfo = getAsyncState();
   
   @api('GET_USER_INFO', {bindState: 'userInfo'})
   getUserInfo () {
-    return this.http.get('<API_ROOT>/userInfo');
+    return this.http.get('/userInfo');
   }
 }
 
-export class OrderStore extends BaseStore {
-  @apiTypeDef GET_ORDER_LIST_OF_USER: ApiType;
+export class OrderService extends BaseStore {
+  @apiTypeDef GET_ORDER_LIST_OF_USER: AsyncType;
   @observable orderListOfUser = getAsyncState();
   
   @api('GET_ORDER_LIST_OF_USER', {bindState: 'orderListOfUser'})
   getOrderListOfUser (params: any) {
-    return this.http.get('<API_ROOT>/order/listOfUser', {params});
+    return this.http.get('/order/listOfUser', {params});
   }
 }
 ```
@@ -65,38 +63,38 @@ export class OrderStore extends BaseStore {
 
 ```typescript
 // /stores/uiStores.ts
-import { BaseStore, bind, runSaga, apiTypeDef, types, ApiType, api } from 'sagax';
+import { BaseStore, bind, runSaga, apiTypeDef, types, AsyncType, api } from 'sagax';
 import { put, call, take, takeLatest, fork } from 'redux-saga/effects';
 import { observable, computed } from 'mobx';
 
-import { UserStore, OrderStore } from './dataStores';
+import { UserService, OrderService } from './serviceStores';
 
-interface OrderUIStoreConfig extends types.BaseStoreConfig {
-  userStore: UserStore;
+interface OrderUIConfig extends types.BaseStoreConfig {
+  userService: UserService;
 }
 
-export class OrderUIStore extends BaseStore {
-  userStore: UserStore;
-  orderStore: OrderStore;
+export class OrderUI extends BaseStore {
+  userService: UserService;
+  orderService: OrderService;
   
   @computed
   get loading () {
-    return this.userStore.userInfo.loading || this.orderStore.orderListOfUser.loading;
+    return this.userService.userInfo.loading || this.orderService.orderListOfUser.loading;
   }
   
   @computed
   get orderList () {
-    return this.orderStore.orderListOfUser.data;
+    return this.orderService.orderListOfUser.data;
   }
   
-  constructor (config: OrderUIStoreConfig) {
+  constructor (config: OrderUIConfig) {
     super(config);
     
     // 这里为什么从参数中获取userStore而不是重新new一个？
     // 因为用户信息这类数据，在大多数应用中都是唯一的（一个系统不会有两个登录用户）
     // 保持userStore的唯一性，可以避免无效和重复的接口调用、内存占用
-    this.userStore = config.userStore;
-    this.orderStore = new OrderStore();
+    this.userService = config.userService;
+    this.orderService = new OrderService();
   }
   
   @runSaga
@@ -107,16 +105,15 @@ export class OrderUIStore extends BaseStore {
   @bind
   *initOrderList () {
     const self: this = yield this;
-    const {userInfo, GET_USER_INFO} = self.userStore;
-    const {GET_ORDER_LIST_OF_USER} = self.orderStore;
+    const {userInfo, GET_USER_INFO} = self.userService;
+    const {GET_ORDER_LIST_OF_USER} = self.userService;
     
     if (userInfo.loading) {
       // 先检查用户信息是否在加载中，如果是，则等待加载成功
       yield take(GET_USER_INFO.END);
-    } else if (!self.userStore.userInfo.data) {
+    } else if (!self.userService.userInfo.data) {
       // 再检查用户信息是否已存在，若不存在，则发起获取用户信息的请求，并等待请求成功
-      yield put({type: GET_USER_INFO.START});
-      yield take(GET_USER_INFO.END);
+      yield call(self.userService.getUserInfo);
     }
     // 以用户id为参数，发起获取用户订单列表的请求
     yield put({type: GET_ORDER_LIST_OF_USER.START, payload: {userId: userInfo.id}});
@@ -131,13 +128,13 @@ import React from 'react';
 import { render } from 'react-dom';
 import { observer } from 'mobx-react';
 
-import { UserStore } from 'stores/dataStores';
-import { OrderUIStore } from 'stores/uiStores';
+import { UserService } from 'stores/serviceStores';
+import { OrderUI } from 'stores/uiStores';
 
 import OrderList from 'components/OrderList'; // 实现忽略
 
-const userStore = new UserStore();
-const orderUIStore = new OrderUIStore({userStore});
+const userUserService = new UserService();
+const orderUI = new OrderUI({userService});
 
 @observer
 class App extends React.Component {
@@ -147,7 +144,7 @@ class App extends React.Component {
         {orderUIStore.loading
           ? 'loading...'
           : (
-            <OrderList dataSource={orderUIStore.orderList}/>
+            <OrderList dataSource={orderUI.orderList}/>
           )
         }
       </div>
@@ -170,112 +167,73 @@ render(<App/>, document.getElementById('root'));
  - [typeDef](#typedef)
  - [apiTypeDef](#apitypedef)
  - [runSaga](#runsaga)
+- types
+ - [BaseStoreStaticConfig](#basestorestaticconfig)
+ - [BaseStoreCofnig](#basestoreconfig)
+ - [AsyncState](#asyncstate)
+ - [AsyncType](#asynctype)
+ - [ApiConfig](#apiconfig)
  
 ## BaseStore
 
-Store的基类，集成SagaRunner与axios，并在实例化时对使用了api、bind、runSaga等装饰器的成员方法进行预处理。
+```typescript
+class BaseStore {
+  /**
+   * 静态对象是否已进行初始化
+   * @type {boolean}
+   */
+  static initialized: boolean = false;
+  /**
+   * 默认的sagaRunner对象，在init静态方法中创建
+   */
+  static sagaRunner: SagaRunner;
+  /**
+   * 默认的axios对象，在init静态方法中创建
+   */
+  static http: AxiosInstance;
 
-### BaseStore.initialized
+  /**
+   * 见BaseStoreConfig.key
+   */
+  key: string;
+  /**
+   * 同BaseStore.http
+   */
+  http: AxiosInstance;
+  /**
+   * baseStoreConfig.sagaRunner 或 BaseStore.sagaRunner
+   */
+  sagaRunner: SagaRunner;
 
-`static initialized: boolean`
+  /**
+   * 初始化静态字段
+   * @param {BaseStoreStaticConfig} baseStoreConfig
+   */
+  static init: (baseStoreConfig: BaseStoreStaticConfig = {}) => void;
 
-BaseStore是否已进行初始化
+  /**
+   * 重置静态字段
+   */
+  static reset: () => void;
 
-### BaseStore.sagaRunner
+  constructor (baseStoreConfig: BaseStoreConfig = {});
 
-`static sagaRunner: SagaRunner`
+  /**
+   * 派发一个action
+   * @param {Action} action
+   * @returns {Action}
+   */
+  dispatch: (action: Action) => Action;
 
-SagaRunner实例，BaseStore实例可通过this.sagaRunner访问该实例对象。默认所有BaseStore实例共享一个SagaRunner实例。
+  /**
+   * 执行Saga方法
+   * @param {Saga} saga 要执行的saga方法
+   * @param args        saga方法的参数列表
+   * @returns {Task}    sagaTask
+   */
+  runSaga: (saga: Saga, ...args: any[]) => Task;
 
-### static http: AxiosInstance
-
-Axios实例，BaseStore实例可通过this.http访问该实例对象。所有BaseStore实例共享一个Axios实例。
-
-### static init (baseStoreConfig: BaseStoreStaticConfig = {}): void
-
-<table>
-  <thead>
-    <tr>
-      <th>字段</th>
-      <th>类型</th>
-      <th>默认值</th>
-      <th>说明</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>axiosConfig?</td>
-      <td>AxiosRequestConfig</td>
-      <td>void</td>
-      <td>Axios实例化配置参数</td>
-    </tr>
-    <tr>
-      <td>sagaOptions?</td>
-      <td>SagaOptions</td>
-      <td>void</td>
-      <td>默认的sagaRunner实例化参数</td>
-    </tr>
-  </tbody>
-</table>
-
-初始化静态实例（SagaRunner实例与Axios实例）
-
-### BaseStore.reset
-
-`static reset (): void`
-
-重置静态实例
-
-### BaseStore.prototype.constructor
-
-`constructor (baseStoreConfig: BaseStoreConfig = {})`
-
-构造方法，在初始化BaseStore实例前，首先会检测并确保BaseStore静态实例已进行初始化
-
-BaseStoreConfig:
-
-<table>
-  <thead>
-    <tr>
-      <th>字段</th>
-      <th>类型</th>
-      <th>默认值</th>
-      <th>说明</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>key?</td>
-      <td>string</td>
-      <td>void</td>
-      <td>store的key，key用于设置store中定义的actionType的命名空间（若未指定key，命名空间中key的值会用随机字符串代替）。此外，指定了key的store在saga中可以通过select来获取该store的实例。</td>
-    </tr>
-    <tr>
-      <td>sagaRunner?</td>
-      <td>SagaRunner</td>
-      <td>void</td>
-      <td>指定其它的SagaRunner实例</td>
-    </tr>
-    <tr>
-      <td>apiResponseTransformer?</td>
-      <td>(apiRes?: any) => any</td>
-      <td>void</td>
-      <td>当store中的api方法SUCCESS动作被触发前，会使用该转换方法对接口返回值进行转换处理</td>
-    </tr>
-  </tbody>
-</table>
-
-### BaseStore.prototype.dispatch
-
-`dispatch (action: Action): Action`
-
-派发一个Action，等同于this.sagaRunner.dispatch(action)
-
-### BaseStore.prototype.runSaga
-
-`runSaga (saga: Saga): Task`
-
-执行一个Saga方法，等同于this.sagaRunner.runSaga(saga)。一般用来运行store的saga入口方法。
+```
 
 ## SagaRunner
 
@@ -283,48 +241,66 @@ BaseStoreConfig:
 
 **不同的SagaRunner实例之间运行的saga互相隔离，无法通信。**在初始化BaseStore实例的时候，可以传入一个新的SagaRunner实例，store中的saga便会运行在一个隔离的“沙箱”中。
 
+```typescript
+
+class SagaRunner<T extends Action = Action> {
+  constructor (private sagaOptions: SagaOptions = {});
+
+  /**
+   * 派发一个action
+   * @param {T} action
+   * @returns {T}
+   */
+  dispatch: (action: T) => action;
+
+  /**
+   * 非SagaMiddleware连接模式下，select副作用会使用这个方法
+   * @returns {{[p: string]: any}}
+   */
+  getState: () => void;
+
+  /**
+   * 执行saga方法
+   * @param {Saga}    saga方法
+   * @param args      saga参数列表
+   * @returns {Task}
+   */
+  runSaga: (saga: Saga, ...args: any[]) => Task;
+
+  /**
+   * 注册store
+   * @param {string} key  store的key
+   * @param store         store对象
+   */
+  registerStore: (key: string, store: any) => void;
+  
+  /**
+   * 根据key注销store
+   * @param {string} key
+   */
+  unRegisterStore: (key: string) => void;
+
+  /**
+   * 将sagaRunner与SagaMiddleware连接
+   * 注意：连接后无法通过select副作用获取store
+   * 注意：请跟在createSagaMiddleware之后使用此方法（晚了容易丢失action或造成action派发失败的问题）
+   * @param {SagaMiddleware<any>} middleware
+   */
+  useSagaMiddleware: (middleware: SagaMiddleware<any>) => void;
+}
+```
+
 ## api
 
-`api (apiCallTypeName: string, config: ApiCallWithConfig = {}): MethodDecorator`
+`api (asyncTypeName: string, config: ApiConfig = {}): MethodDecorator`
 
 接口方法装饰器工厂方法。
 
-在初始化BaseStore实例的时候，会根据apiCallTypeName从实例中查找接口对应的ApiType（this[apiCallTypeName])，并自动执行一个监听ApiType的saga。
+当调用使用api装饰器装饰的方法时，会在调用接口前派发一个`this[asyncTypeName].START`的action。
 
-当`ApiType.START`的action被触发时，会以`action.payload`为参数执行api接口方法，获取接口返回值后，派发一个type为`ApiType.END`、payload为接口方法返回值（若指定了apiResponseTransformer，则会使用该方法对返回值进行处理）的action。若接口方法调用出错，则会派发一个type为`ApiType.ERROR`的action。
+调用成功后，派发一个`this[asyncTypeName].END`的action，并在payload中带上调用结果。
 
-ApiCallWithConfig:
-
-<table>
-  <thead>
-    <tr>
-      <th>字段</th>
-      <th>类型</th>
-      <th>默认值</th>
-      <th>说明</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>apiCallTypeName?</td>
-      <td>string</td>
-      <td>void</td>
-      <td>值等同与装饰器的第一个参数，不需要在config中指定（指定也会被第一个参数覆盖）</td>
-    </tr>
-    <tr>
-      <td>defaultParams?</td>
-      <td>{}</td>
-      <td>void</td>
-      <td>接口方法的默认参数，如果有值，接口方法在调用时会使用`Object.assign({}, defaultParams, params)`对参数进行处理</td>
-    </tr>
-    <tr>
-      <td>bindState?</td>
-      <td>string</td>
-      <td>void</td>
-      <td>接口状态绑定的字段名称，如果有值，会在接口调用的各个阶段自动更新绑定字段的值</td>
-    </tr>
-  </tbody>
-</table>
+当调用失败时，会派发一个`this[asyncTypeName].ERROR`的action，并在payload中带上错误对象。
 
 ## bind
 
@@ -338,19 +314,15 @@ ApiCallWithConfig:
 
 ActionType定义属性装饰器。
 
-可同时在静态字段与实例字段上使用。在静态字段使用时，会使用`${ClassName}/${ActionType}`作为该字段的值；在实例字段使用时，会使用`${ClassName}<${key}>/${ActionType}`作为该字段的值。
+使用该装饰器的字段会被自动赋值为`${ClassName}<${key}>/${ActionType}`。
 
-## apiTypeDef
+## asyncTypeDef
 
-`apiTypeDef: PropertyDecorator`
+`asyncTypeDef: PropertyDecorator`
 
-ApiType定义属性装饰器。
+AsyncType定义属性装饰器。
 
-ApiType是由四个ActionType组成的对象： PRE_REQUEST、START、END、ERROR，分别代表“接口预请求”、“接口请求”、“接口请求成功”、“接口请求失败”四种action。
-
-其中，PRE_REQUEST用于在接口真正请求发起前，准备请求的参数。
-
-与typeDef相同，apiTypeDef也可以同时在静态字段与实例字段上使用。
+AsyncType是由三个ActionType组成的对象： START、END、ERROR，分别代表“接口请求开始”、“接口请求完成”、“接口请求失败”四种action。
 
 ## runSaga
 
@@ -360,4 +332,118 @@ saga方法自动执行方法装饰器。
 
 标记该装饰器的方法，会在实例初始化时使用this.runSaga方法执行该saga方法。
 
-...
+一般在saga入口方法中使用该装饰器。
+
+## BaseStoreStaticConfig
+
+BaseStore静态配置：
+
+```typescript
+export interface BaseStoreStaticConfig {
+  /**
+   * axios实例的配置参数对象
+   */
+  axiosConfig?: AxiosRequestConfig;
+  /**
+   * 默认sagaRunner的配置参数对象
+   */
+  sagaOptions?: SagaOptions;
+}
+```
+
+## BaseStoreConfig
+
+BaseStore配置：
+
+```typescript
+
+export interface BaseStoreConfig {
+  /**
+   * store的key
+   * 当构建store的时候，若传入了key（BaseStoreConfig.key），会在sagaRunner以此key中注册该store
+   * 被注册的store可以在select副作用获取到该store对象，一般在这个store是全局唯一的通用store时使用该配置
+   * 如：yield select(stores => stores[key])
+   *
+   * 如果没有在构建store的时候传入key，将不会在sagaRunner中注册，并且会用一个随机字符串填充该key值充当action type的命名空间前缀的一部分
+   */
+  key?: string;
+  /**
+   * 设置一个另外的sagaRunner对象，这个store中的saga将会在这个sagaRunner中执行
+   * 并且无法take到其它sagaRunner中的action
+   */
+  sagaRunner?: SagaRunner;
+  /**
+   * 接口返回结果转换方法，在api调用成功后，会通过本方法转换后再赋值给相应的的state
+   * @default void
+   * @param apiRes  普通接口调用的结果对象
+   * @returns {any}
+   */
+  apiResToState?: (apiRes?: any) => any;
+  /**
+   * api调用过程中是否自动更新绑定的state
+   * @default true
+   */
+  bindState?: boolean;
+}
+```
+
+## AsyncState
+
+异步状态：
+
+```typescript
+export interface AsyncState<T = any> {
+  loading: boolean;
+  error: null | Error;
+  data: null | T;
+}
+```
+
+## AsyncType
+
+异步类型：
+
+```typescript
+
+/**
+ * R: 约定触发START时会带的payload属性类型
+ * S: 约定触发END时会带的payload属性类型
+ * F: 约定触发ERROR时会带的payload属性类型
+ */
+export interface AsyncType<R = any, S = any, F = any> {
+  START: ActionType<R>;
+  END: ActionType<S>;
+  ERROR: ActionType<F>;
+}
+
+```
+
+## ApiConfig
+
+api装饰器配置
+
+```typescript
+
+export interface ApiConfig {
+  /**
+   * 异步action type名称
+   */
+  asyncTypeName?: string;
+  /**
+   * 默认参数对象
+   * @default void
+   */
+  defaultParams?: any;
+  /**
+   * 接口状态绑定state的名称
+   * @default void
+   */
+  bindState?: string;
+  /**
+   * 是否为标准的axios接口（接口方法是否返回AxiosPromise）
+   * @default true
+   */
+  axiosApi?: boolean;
+}
+```
+

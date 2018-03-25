@@ -3,7 +3,7 @@ import { runSaga, Task, END, RunSagaOptions, SagaMiddleware, SagaIterator } from
 import { SagaOptions } from './types';
 
 type Callback<T> = (cb: (T | END)) => void;
-export type Saga = () => Iterator<any>;
+export type Saga = (...args: any[]) => Iterator<any>;
 
 class SagaRunner<T extends Action = Action> {
   
@@ -78,15 +78,12 @@ class SagaRunner<T extends Action = Action> {
     };
   }
 
-  private rawRunSaga (options: RunSagaOptions<T, any>, saga: () => Iterator<any>): Task {
+  private rawRunSaga (options: RunSagaOptions<T, any>, saga: () => Iterator<any>, ...args: any[]): Task {
     if (this.sagaMiddleware) {
-      return this.sagaMiddleware.run(saga);
+      return this.sagaMiddleware.run.apply(null, [saga, ...args]);
     }
 
-    return runSaga<T, any>(
-      options,
-      saga
-    );
+    return runSaga.apply(this, [options, saga, ...args]);
   }
 }
 

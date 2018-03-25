@@ -32,4 +32,18 @@ describe('SagaRunner', () => {
     },
     100
   );
+
+  test(
+    '带参数的runSaga',
+    () => {
+      function* saga (params: any) {
+        expect(params).toBe(123);
+        return params;
+      }
+
+      const sagaRunner = new SagaRunner();
+      return sagaRunner.runSaga(saga, 123).done;
+    },
+    100
+  );
 });

@@ -159,20 +159,20 @@ render(<App/>, document.getElementById('root'));
 # Document
 
 - core
- - [BaseStore](#basestore)
- - [SagaRunner](#sagarunner)
+  - [BaseStore](#basestore)
+  - [SagaRunner](#sagarunner)
 - decorators
- - [api](#api)
- - [bind](#bind)
- - [typeDef](#typedef)
- - [apiTypeDef](#apitypedef)
- - [runSaga](#runsaga)
+  - [api](#api)
+  - [bind](#bind)
+  - [typeDef](#typedef)
+  - [apiTypeDef](#apitypedef)
+  - [runSaga](#runsaga)
 - types
- - [BaseStoreStaticConfig](#basestorestaticconfig)
- - [BaseStoreCofnig](#basestoreconfig)
- - [AsyncState](#asyncstate)
- - [AsyncType](#asynctype)
- - [ApiConfig](#apiconfig)
+  - [BaseStoreStaticConfig](#basestorestaticconfig)
+  - [BaseStoreCofnig](#basestoreconfig)
+  - [AsyncState](#asyncstate)
+  - [AsyncType](#asynctype)
+  - [ApiConfig](#apiconfig)
  
 ## BaseStore
 
@@ -447,3 +447,4 @@ export interface ApiConfig {
 }
 ```
 
+更多详细用法可查阅[测试代码](https://github.com/awaw00/sagax/tree/master/lib/test)

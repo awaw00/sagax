@@ -173,6 +173,7 @@ render(<App/>, document.getElementById('root'));
 - types
   - [BaseStoreStaticConfig](#basestorestaticconfig)
   - [BaseStoreCofnig](#basestoreconfig)
+  - [ActionType](#actiontype)
   - [AsyncState](#asyncstate)
   - [AsyncType](#asynctype)
   - [ApiConfig](#apiconfig)
@@ -388,6 +389,15 @@ export interface BaseStoreConfig {
    */
   bindState?: boolean;
 }
+```
+
+## ActionType
+
+```typescript
+/**
+ * T: 约定触发该Action会带的payload属性的类型
+ */
+export type ActionType<T = any> = string;
 ```
 
 ## AsyncState

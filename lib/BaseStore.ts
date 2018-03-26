@@ -143,10 +143,12 @@ export default class BaseStore {
       }
     });
 
-    // 到最后再一次性执行runSaga，避免某些方法未绑定this
     if (runSagaFuncArr.length > 0) {
-      this.runSaga(function* () {
-        yield all(runSagaFuncArr.map(i => fork(i)));
+      // 使用setTimeout避免子类的构造函数没执行完就开始执行saga入口方法
+      setTimeout(() => {
+        this.runSaga(function* () {
+          yield all(runSagaFuncArr.map(i => fork(i)));
+        });
       });
     }
   }

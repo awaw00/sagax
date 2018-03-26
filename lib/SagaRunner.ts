@@ -26,6 +26,7 @@ class SagaRunner<T extends Action = Action> {
       runSagaOptions.sagaMonitor = this.sagaOptions.monitor;
     }
     this.bindRunSaga = this.rawRunSaga.bind(this, runSagaOptions);
+    this.runSaga = this.runSaga.bind(this);
   }
 
   /**

@@ -260,7 +260,7 @@ class SagaRunner<T extends Action = Action> {
    * 非SagaMiddleware连接模式下，select副作用会使用这个方法
    * @returns {{[p: string]: any}}
    */
-  getState: () => void;
+  getState: () => {[p: string]: any};
 
   /**
    * 执行saga方法

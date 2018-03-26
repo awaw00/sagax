@@ -31,7 +31,7 @@ UIStore用于管理应用界面渲染所涉及的状态数据、响应用户界�
 
 # Basic Usage
 
-定义数据Store：
+定义服务Store：
 
 ```typescript
 // /stores/serviceStores.ts

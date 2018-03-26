@@ -1,6 +1,8 @@
 Saga + MobX = SagaX
 ----
 
+[SagaX playground](https://codesandbox.io/s/307rk6r6wq)
+
 # 基本理念
 
 将应用状态划分到三类Store中：

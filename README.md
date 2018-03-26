@@ -5,10 +5,10 @@ Saga + MobX = SagaX
 
 将应用状态划分到三类Store中：
 
-- ServiceStore  服务Store
-- LogicStore    逻辑Store
-- UIStore       界面Store
-- UtilStore     工具Store 
+- ServiceStore 服务Store
+- LogicStore 逻辑Store
+- UIStore 界面Store
+- UtilStore 工具Store
 
 其中，ServiceStore用于定义接口调用方法、接口相关的ActionType和接口状态。
 

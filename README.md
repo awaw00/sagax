@@ -1,7 +1,7 @@
 SagaX
 ----
 
-State management with mobx and sagax.
+State management with mobx and redux-saga.
 
 Try sagax at [SagaX playground](https://codesandbox.io/s/307rk6r6wq).
 

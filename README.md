@@ -1,18 +1,30 @@
-Saga + MobX = SagaX
+SagaX
 ----
 
-[SagaX playground](https://codesandbox.io/s/307rk6r6wq)
+State management with mobx and sagax.
 
-# 基本理念
+Try sagax at [SagaX playground](https://codesandbox.io/s/307rk6r6wq).
+
+# Setup
+
+`yarn install sagax mobx@^3.6.1 redux-saga@^0.16 axios@^0.18.0`
+
+mobx、redux-saga、axios是sagax中的peerDependencies，请注意安装版本。
+
+*redux-saga的1.0.0-beta版本有一些不支持sagax的变动，在sagax兼容之前请使用0.16版本。*
+
+# Getting Started Guide
+
+## Concepts
 
 将应用状态划分到三类Store中：
 
 - ServiceStore 服务Store
 - LogicStore 逻辑Store
 - UIStore 界面Store
-- UtilStore 工具Store
+- UtilStore 工具Store(Optional)
 
-其中，ServiceStore用于定义接口调用方法、接口相关的ActionType和接口状态。
+其中，ServiceStore用于定义接口调用方法、接口相关的ActionType和接口调用状态。
 
 LogicStore用于管理应用的逻辑过程和中间状态，比如，控制应用加载时的初始化流程（如调用初始化数据接口等）、控制页面的渲染时机。
 
@@ -22,17 +34,7 @@ UIStore用于管理应用界面渲染所涉及的状态数据、响应用户界�
 
 **但是保持ServiceStore的独立性对项目中后期的可维护性和可扩展性来说，是非常重要的。**
 
-# 构成
-
-- MobX：提供了Store与Store、Store与界面（React、DOM...）之间的响应式状态链接
-- Saga：Saga在这里充当的是一个分布式事务调度核心
-
-为什么选择MobX而不是“原配”Redux来管理应用状态？
-
-函数式风格的Redux确实有它的亮眼之处，但是Redux管理的状态是全局化的中心状态，很难对已有的代码进行复用。
-而MobX的OOP支持让代码复用变得简单，通过良好的代码组织，项目可以变得易扩展、易维护。
-
-# Basic Usage
+## Basic Usage
 
 定义服务Store：
 
@@ -163,16 +165,18 @@ render(<App/>, document.getElementById('root'));
 
 # Document
 
-- core
+- [Core](#core)
   - [BaseStore](#basestore)
   - [SagaRunner](#sagarunner)
-- decorators
+- [Decorators](#decorators)
   - [api](#api)
   - [bind](#bind)
   - [typeDef](#typedef)
   - [apiTypeDef](#apitypedef)
   - [runSaga](#runsaga)
-- types
+- [Utils](#utils)
+  - [getAsyncState](#getasyncstate)
+- [Interfaces & types](#interfaces-&-types)
   - [BaseStoreStaticConfig](#basestorestaticconfig)
   - [BaseStoreCofnig](#basestoreconfig)
   - [ActionType](#actiontype)
@@ -180,7 +184,9 @@ render(<App/>, document.getElementById('root'));
   - [AsyncType](#asynctype)
   - [ApiConfig](#apiconfig)
  
-## BaseStore
+## Core
+
+### BaseStore
 
 ```typescript
 class BaseStore {
@@ -241,7 +247,7 @@ class BaseStore {
 
 ```
 
-## SagaRunner
+### SagaRunner
 
 提供一个Saga运行环境。
 
@@ -296,7 +302,9 @@ class SagaRunner<T extends Action = Action> {
 }
 ```
 
-## api
+## Decorators
+
+### api
 
 `api (asyncTypeName: string, config: ApiConfig = {}): MethodDecorator`
 
@@ -308,13 +316,13 @@ class SagaRunner<T extends Action = Action> {
 
 当调用失败时，会派发一个`this[asyncTypeName].ERROR`的action，并在payload中带上错误对象。
 
-## bind
+### bind
 
 `bind: MethodDecorator`
 
 绑定方法执行上下文为this的方法装饰器
 
-## typeDef
+### typeDef
 
 `typeDef: PropertyDecorator`
 
@@ -322,7 +330,7 @@ ActionType定义属性装饰器。
 
 使用该装饰器的字段会被自动赋值为`${ClassName}<${key}>/${ActionType}`。
 
-## asyncTypeDef
+### asyncTypeDef
 
 `asyncTypeDef: PropertyDecorator`
 
@@ -330,7 +338,7 @@ AsyncType定义属性装饰器。
 
 AsyncType是由三个ActionType组成的对象： START、END、ERROR，分别代表“接口请求开始”、“接口请求完成”、“接口请求失败”四种action。
 
-## runSaga
+### runSaga
 
 `runSaga: MethodDecorator`
 
@@ -340,7 +348,19 @@ saga方法自动执行方法装饰器。
 
 一般在saga入口方法中使用该装饰器。
 
-## BaseStoreStaticConfig
+## Utils
+
+### getAsyncState
+
+获取异步状态的初始值（用于初始化异步状态字段），返回[AsyncState](#asyncstate)
+
+```typescript
+function getAsyncState<T> (initialValue: T = null): AsyncState<T>;
+```
+
+## Interfaces & Types
+
+### BaseStoreStaticConfig
 
 BaseStore静态配置：
 
@@ -357,7 +377,7 @@ export interface BaseStoreStaticConfig {
 }
 ```
 
-## BaseStoreConfig
+### BaseStoreConfig
 
 BaseStore配置：
 
@@ -393,7 +413,7 @@ export interface BaseStoreConfig {
 }
 ```
 
-## ActionType
+### ActionType
 
 ```typescript
 /**
@@ -402,7 +422,7 @@ export interface BaseStoreConfig {
 export type ActionType<T = any> = string;
 ```
 
-## AsyncState
+### AsyncState
 
 异步状态：
 
@@ -414,7 +434,7 @@ export interface AsyncState<T = any> {
 }
 ```
 
-## AsyncType
+### AsyncType
 
 异步类型：
 
@@ -433,7 +453,7 @@ export interface AsyncType<R = any, S = any, F = any> {
 
 ```
 
-## ApiConfig
+### ApiConfig
 
 api装饰器配置
 

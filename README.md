@@ -481,3 +481,138 @@ export interface ApiConfig {
   axiosApi?: boolean;
 }
 ```
+
+# Best Practice
+
+- [项目结构](#项目结构)
+- [DO NOT: 给ActionType加命名空间](#do-not:-给actiontype加命名空间)
+- [DO NOT: 通过Action去执行方法](#do-not:-通过action去执行方法)
+
+## 项目结构
+
+个人推荐的项目结构（仅供参考）
+
+```
+.
+├── src
+│   ├── index.ts
+│   ├── App.ts
+│   ├── routes
+│   │   ├── index.ts
+│   │   ├── Home
+│   │   │   ├── index.ts
+│   │   │   ├── components
+│   │   └── Product
+│   │       ├── index.ts
+│   │       ├── components
+│   │       └── stores
+│   │           ├── ProductLogic.ts
+│   │           └── ProductUI.ts
+│   └── stores
+│       ├── index.ts
+│       ├── logic
+│       │   └── AppLogic.ts
+│       └── service
+│           ├── UserApi.ts
+│           ├── ProductApi.ts
+│           └── OrderApi.ts
+└── package.json
+```
+
+与redux的全局store不同，sagax的store更灵活，可以有全局store也可以有局部store。
+
+可以在`src/stores/index.ts`文件中初始化全局store：
+
+```typescript
+import AppLogic from './logic/AppLogic';
+import UserApi from './service/UserApi';
+
+export const user = new UserApi({key: 'user'});
+export const appLogic = new AppLogic({key: 'appLogic', user});
+...
+```
+
+然后在`src/routes/Product/index.ts`中使用全局store：
+```typescript
+import { user } from '../../stores';
+import ProductUI from '../stores/ProductUI';
+
+const productUI = new ProductUI({user});
+...
+```
+
+## DO NOT: 给ActionType加命名空间
+
+sagax在处理ActionType的时候（包括AsyncType），会自动加上命名空间避免重复。
+
+具体命名空间的值可以参考测试代码：
+```typescript
+test('asyncType和typeDef自动赋值', () => {
+  class TypeTest extends BaseStore {
+    @typeDef TYPE_B: string;
+    @asyncTypeDef TYPE_API_B: AsyncType;
+  }
+
+  const typeTest = new TypeTest({key: 'test'});
+
+  expect(typeTest.TYPE_B).toBe('TypeTest<test>/TYPE_B');
+  expect(typeTest.TYPE_API_B).toEqual({
+    START: 'TypeTest<test>/TYPE_API_B/START',
+    END: 'TypeTest<test>/TYPE_API_B/END',
+    ERROR: 'TypeTest<test>/TYPE_API_B/ERROR'
+  });
+
+  const randomKeyTypeTest = new TypeTest();
+
+  const key = randomKeyTypeTest.key;
+  expect(key).toMatch(/^[a-zA-Z]{6}$/);
+  expect(randomKeyTypeTest.TYPE_B).toBe(`TypeTest<${key}>/TYPE_B`);
+  expect(randomKeyTypeTest.TYPE_API_B).toEqual({
+    START: `TypeTest<${key}>/TYPE_API_B/START`,
+    END: `TypeTest<${key}>/TYPE_API_B/END`,
+    ERROR: `TypeTest<${key}>/TYPE_API_B/ERROR`
+  });
+});
+```
+
+## DO NOT: 通过Action去执行方法
+
+在配合redux使用saga的时候，一般会通过派发一个Action的方式来执行saga方法，例如：
+
+saga：
+```typescript
+function* getData ({payload}) {
+  ...
+}
+
+yield takeLatest(types.GET_DATA, getData);
+```
+
+react component：
+```typescript
+@connect(
+  state => ({}),
+  dispatch => ({
+    onGetData () {
+      dispatch({
+        type: types.GET_DATA,
+        payload: {...}
+      });
+    }
+  })
+)
+class Comp extends React.Component {
+  render () {
+    return (
+      <button onClick={this.props.onGetData}>Click</button>
+    );
+  }
+}
+```
+
+在sagax中，也可以像上面这样去实现，但是不推荐这么做，原因如下：
+
+- 方法参数通过payload传递，将无法享受开发时的编辑器的智能提示和类型安全检查
+- 通过Action来调用方法，容易让应用的Action变得混乱（有的Action既可用来主动调用方法，又可用来作为事件被动监听）
+
+**最好的做法是，所有的Action都只作为被动的事件通知，是向模块外部暴露的钩子，以便外部使用者在某个事件触发时做特定的处理。**

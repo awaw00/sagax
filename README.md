@@ -5,6 +5,36 @@ State management with mobx and redux-saga.
 
 Try sagax at [SagaX playground](https://codesandbox.io/s/307rk6r6wq).
 
+# Table of Contents
+
+- [Setup](#setup)
+- [Getting Started Guide](#getting-started-guide)
+  - [Concepts](#concepts)
+  - [Basic Usage](#basic-usage)
+- [Document](#document)
+  - [Core](#core)
+    - [BaseStore](#basestore)
+    - [SagaRunner](#sagarunner)
+  - [Decorators](#decorators)
+    - [api](#api)
+    - [bind](#bind)
+    - [typeDef](#typedef)
+    - [apiTypeDef](#apitypedef)
+    - [runSaga](#runsaga)
+  - [Utils](#utils)
+    - [getAsyncState](#getasyncstate)
+  - [Interfaces & types](#interfaces-&-types)
+    - [BaseStoreStaticConfig](#basestorestaticconfig)
+    - [BaseStoreCofnig](#basestoreconfig)
+    - [ActionType](#actiontype)
+    - [AsyncState](#asyncstate)
+    - [AsyncType](#asynctype)
+    - [ApiConfig](#apiconfig)
+- [Best Practice](#best-practice)
+  - [项目结构](#项目结构)
+  - [DO NOT: 给ActionType加命名空间](#do-not-给actiontype加命名空间)
+  - [DO NOT: 通过Action去执行方法](#do-not-通过action去执行方法)
+
 # Setup
 
 `yarn install sagax mobx@^3.6.1 redux-saga@^0.16 axios@^0.18.0`
@@ -485,8 +515,8 @@ export interface ApiConfig {
 # Best Practice
 
 - [项目结构](#项目结构)
-- [DO NOT: 给ActionType加命名空间](#do-not:-给actiontype加命名空间)
-- [DO NOT: 通过Action去执行方法](#do-not:-通过action去执行方法)
+- [DO NOT: 给ActionType加命名空间](#do-not-给actiontype加命名空间)
+- [DO NOT: 通过Action去执行方法](#do-not-通过action去执行方法)
 
 ## 项目结构
 

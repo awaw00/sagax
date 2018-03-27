@@ -19,7 +19,7 @@ Try sagax at [SagaX playground](https://codesandbox.io/s/307rk6r6wq).
     - [api](#api)
     - [bind](#bind)
     - [typeDef](#typedef)
-    - [asyncTypeDef](#asyncTypeDef)
+    - [asyncTypeDef](#asynctypedef)
     - [runSaga](#runsaga)
   - [Utils](#utils)
     - [getAsyncState](#getasyncstate)

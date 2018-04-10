@@ -40,7 +40,7 @@ class SagaRunner<T extends Action = Action> {
       arr[i](action);
     }
 
-    if (process.env.NODE_ENV === 'development' || process.env.SAGA_LOG) {
+    if (process.env.SAGA_LOG) {
       console.groupCollapsed(`Action: ${action.type}`);
       console.log(action.payload);
       console.groupEnd();

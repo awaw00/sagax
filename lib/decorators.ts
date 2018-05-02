@@ -23,9 +23,9 @@ export function bind (target: any, key: string, descriptor: any) {
 export function typeDef (target: any, key: string): any {
   if (typeof target === 'function') {
     // static type
-    // const namespace = target.name;
-    // target[key] = `${namespace}/${key}`;
-    console.warn('typeDef is not compatible with static field.');
+    const namespace = target.name;
+    target[key] = `${namespace}/${key}`;
+    // console.warn('typeDef is not compatible with static field.');
     return target;
   } else {
     // instance type
